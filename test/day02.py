@@ -7,7 +7,7 @@ class Day2Tests(unittest.TestCase):
 
     def setUp(self):
         with open('../res/day02.txt') as file:
-            self.passwords = file.readlines()
+            self.passwords = file.read().splitlines()
 
     def test_valid_passwords(self):
         count = count_if(self.passwords, day2.is_password_valid)

@@ -34,7 +34,7 @@ def count_if(list, test):
 
 if __name__ == '__main__':
     with open('../res/day02.txt') as file:
-        passwords = file.readlines()
+        passwords = file.read().splitlines()
 
     print('Day 2: Password Philosophy')
     print('--------------------------')
