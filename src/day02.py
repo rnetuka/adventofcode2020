@@ -2,6 +2,7 @@
 
 import re
 from collections import namedtuple
+from src.util import count_if
 
 Policy = namedtuple('PasswordPolicy', ('n', 'm', 'letter', 'password'))
 
@@ -26,10 +27,6 @@ def is_password_valid_reworked(input):
     cond_i = password[i] == letter
     cond_j = password[j] == letter
     return cond_i ^ cond_j
-
-
-def count_if(list, test):
-    return sum(test(item) for item in list)
 
 
 if __name__ == '__main__':
