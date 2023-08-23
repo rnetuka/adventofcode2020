@@ -1,96 +1,125 @@
 from util import *
 
 
+def next_operand(expression):
+    if expression.startswith('('):
+        operand = matching_parenthesis_substring(expression)
+        return operand, expression[len(operand) + 1:]
+    else:
+        if ' ' in expression:
+            i = expression.index(' ')
+            operand = expression[:i]
+            return operand, expression[i + 1:]
+        else:
+            operand = expression
+            return operand, ''
+
+
+def next_operation(expression):
+    i = expression.index(' ')
+    operation = expression[:i]
+    return operation, expression[i + 1:]
+
+
 class ExpressionEvaluator:
 
-    def __init__(self, expression):
-        self.expression = expression
-        self.stack = []
+    def __init__(self):
         self.operator_priorities = {'+': 1, '*': 1}
         self.operations = {'+': lambda a, b: a + b,
                            '*': lambda a, b: a * b}
 
-    def read_operand(self):
-        if self.expression.startswith('('):
-            operand = matching_parenthesis_substring(self.expression)
-            self.expression = self.expression[len(operand)+1:]
-            return operand
-        else:
-            if ' ' in self.expression:
-                i = self.expression.index(' ')
-                operand = self.expression[:i]
-                self.expression = self.expression[i+1:]
-                return operand
-            else:
-                operand = self.expression
-                self.expression = ''
-                return operand
-
-    def read_operation(self):
-        i = self.expression.index(' ')
-        operation = self.expression[:i]
-        self.expression = self.expression[i + 1:]
-        return operation
+    @property
+    def max_operation_priority(self):
+        return max(self.operator_priorities.values())
 
     def evaluate_operand(self, operand):
         if isinstance(operand, int):
             return operand
         elif operand.startswith('('):
-            e = ExpressionEvaluator(operand[1:-1])
+            e = ExpressionEvaluator()
             e.operator_priorities = self.operator_priorities
-            return e.evaluate()
-        else:
+            return e.evaluate(operand[1:-1])
+        elif isinstance(operand, str):
             return int(operand)
 
-    def evaluate(self):
-        priority_level = max(self.operator_priorities.values())
-        while len(self.expression) > 0:
-            if len(self.stack) == 0:
-                a = self.read_operand()
-                self.stack.append(a)
+    # decompose an expression into a stack
+    def decompose(self, expression, priority_level):
+        stack = []
+        while len(expression) > 0:
+            if len(stack) == 0:
+                a, expression = next_operand(expression)
+                stack.append(a)
             else:
-                a = self.stack.pop()
-                operator = self.read_operation()
-                b = self.read_operand()
+                a = stack.pop()
+                operator, expression = next_operation(expression)
+                b, expression = next_operand(expression)
 
                 if self.operator_priorities[operator] == priority_level:
                     a = self.evaluate_operand(a)
                     b = self.evaluate_operand(b)
                     operation = self.operations[operator]
-                    self.stack.append(operation(a, b))
+                    stack.append(operation(a, b))
                 else:
-                    self.stack.append(a)
-                    self.stack.append(operator)
-                    self.stack.append(b)
+                    stack.append(a)
+                    stack.append(operator)
+                    stack.append(b)
 
-        while len(self.stack) > 1:
-            a = self.evaluate_operand(self.stack.pop())
-            operator = self.stack.pop()
-            b = self.evaluate_operand(self.stack.pop())
-            operation = self.operations[operator]
-            self.stack.append(operation(a, b))
+        return stack
 
-        return self.stack.pop()
+    def evaluate(self, expression):
+        priority_level = self.max_operation_priority
+        stack = self.decompose(expression, priority_level)
+
+        while priority_level >= 1:
+            stack = self.evaluate_stack(stack, priority_level)
+            priority_level -= 1
+
+        return stack.pop()
+
+    def evaluate_stack(self, stack, priority_level):
+        if len(stack) == 1:
+            return stack
+
+        queue = []
+
+        a = stack.pop()
+        while len(stack) > 0:
+            operator = stack.pop()
+            b = stack.pop()
+
+            if self.operator_priorities[operator] == priority_level:
+                a = self.evaluate_operand(a)
+                b = self.evaluate_operand(b)
+                operation = self.operations[operator]
+                result = operation(a, b)
+                queue.append(result)
+                a = result
+            else:
+                if len(queue) == 0:
+                    queue.insert(0, a)
+                queue.insert(0, operator)
+                queue.insert(0, b)
+                a = b
+
+        return queue
 
 
-def evaluate(expression, consider_operator_priorities=False):
-    evaluator = ExpressionEvaluator(expression)
-    if consider_operator_priorities:
-        evaluator.operator_priorities = {'+': 2, '*': 1}
-    return evaluator.evaluate()
+def evaluate(expression, operator_priorities):
+    evaluator = ExpressionEvaluator()
+    evaluator.operator_priorities = operator_priorities
+    return evaluator.evaluate(expression)
 
 
 if __name__ == '__main__':
     with open('../res/day18.txt') as file:
-        sum = 0
-        for line in file.readlines():
-            pass
-            sum += evaluate(line)
-        print(sum)
+        expressions = file.readlines()
 
-    with open('../res/day18.txt') as file:
-        sum = 0
-        for line in file.readlines():
-            pass
-            sum += evaluate(line, consider_operator_priorities=True)
-        print(sum)
+    sum = 0
+    for expression in expressions:
+        sum += evaluate(expression, operator_priorities={'+': 1, '*': 1})
+    print(sum)
+
+    sum = 0
+    for expression in expressions:
+        sum += evaluate(expression, operator_priorities={'+': 2, '*': 1})
+    print(sum)
